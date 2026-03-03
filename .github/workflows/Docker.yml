@@ -1,0 +1,8 @@
+- name: Build and Push
+  uses: docker/build-push-action@v6
+  with:
+    context: .
+    file: core/Dockerfile
+    push: true
+    platforms: linux/amd64,linux/arm64
+    tags: ghcr.io/xhlydz/qq-farm-bot-ui:latest
