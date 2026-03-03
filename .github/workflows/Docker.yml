@@ -21,10 +21,10 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
+      - name: Set up QEMU (for multi-arch)
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -37,16 +37,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=tag
-            type=raw,value=stable,enable={{is_tag}}
-            type=sha
+      - name: Set Docker image tags
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "TAGS=${REGISTRY}/${IMAGE_NAME}:${VERSION},${REGISTRY}/${IMAGE_NAME}:stable" >> $GITHUB_ENV
+          else
+            echo "TAGS=${REGISTRY}/${IMAGE_NAME}:latest" >> $GITHUB_ENV
+          fi
 
       - name: Build and Push
         uses: docker/build-push-action@v6
@@ -55,5 +54,4 @@ jobs:
           file: core/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.TAGS }}
